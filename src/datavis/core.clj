@@ -56,12 +56,12 @@
       (and (< y (dec height)) (< x width) (nil? data))
       (throw (Exception. (format "Out of data: (%d,%d)" x y)))
       
-      (= y height)
-      (recur data width height pixel-renderer (inc x) 0)
+      (= x width)
+      (recur data width height pixel-renderer 0 (inc y))
 
-      (< x width)
+      (< y height)
       (do (pixel-renderer (first data) x y)
-          (recur (next data) width height pixel-renderer x (inc y))))))
+          (recur (next data) width height pixel-renderer (inc x) y)))))
 
 (defn parse-double
   [s]
