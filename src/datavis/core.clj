@@ -7,6 +7,7 @@
             ComponentColorModel]
            [java.awt.color ColorSpace]
            [javax.imageio ImageIO])
+  (:use datavis.util)
   (:require [clojure.java [io :as io]]
             [clojure [string :as str]])
   (:gen-class))
@@ -94,23 +95,10 @@
      (do (pixel-renderer [(first data1) (first data2) (first data3)] x y)
          (recur (next data1) (next data2) (next data3) width height (inc x) y)))))
 
-(defn parse-double
-  [s]
-  (Double. s))
-
-(defn read-lines
-  [input]
-  (lazy-seq
-   (if-let [line (.readLine input)]
-     (cons line (read-lines input))
-     ())))
-
 (defn read-data
   [input]
   (map parse-double
-       (remove #(= "" %)
-               (mapcat #(str/split % #"\s")
-                       (read-lines input)))))
+       (tokenize-line (read-lines input))))
 
 (defn read-data-file
   [filename color]
