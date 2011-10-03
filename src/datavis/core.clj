@@ -9,7 +9,8 @@
            [javax.imageio ImageIO])
   (:use datavis.util)
   (:require [clojure.java [io :as io]]
-            [clojure [string :as str]])
+            [clojure [string :as str]]
+            [datavis [parameter-file :as p]])
   (:gen-class))
 
 (defn get-ncols
@@ -154,10 +155,9 @@
       img)))
 
 (defn -main
-  [input1 r1 g1 b1 input2 r2 g2 b2 input3 r3 g3 b3 output-file]
-  (let [file1 (read-data-file input1 (vec (for [x [r1 g1 b1]] (Integer. x))))
-        file2 (read-data-file input2 (vec (for [x [r2 g2 b2]] (Integer. x))))
-        file3 (read-data-file input3 (vec (for [x [r3 g3 b3]] (Integer. x))))]
+  [params output-file]
+  (let [[file1 file2 file3] (map #(read-data-file (:filename %) (:color %))
+                                 (p/get-parameter-files params))]
 
     (if (not (= (:width file1) (:width file2) (:width file3)))
       (throw (Exception. "Data-files don't all have the same width.")))
@@ -176,4 +176,3 @@
 
           (render-data file1 file2 file3 pixel-renderer 0 0)
           (ImageIO/write img "PNG" output)))))
-
