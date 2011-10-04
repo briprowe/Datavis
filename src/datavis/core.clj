@@ -13,6 +13,8 @@
             [datavis [parameter-file :as p]])
   (:gen-class))
 
+(defonce +epsilon+ 1.0e-10)
+
 (defn get-ncols
   [line]
   (let [s (str/trim (second (remove #(= "" %) (str/split line #"\s"))))]
@@ -51,11 +53,11 @@
   (int (reduce + (map * data blue))))
 
 (defn normalize
-  [[d1 d2 d3 :as data]]
+  [data]
   (let [s (reduce + data)]
-    (if (zero? s)
-      [0 0 0]
-      [(/ d1 s) (/ d2 s) (/ d3 s)])))
+    (if (< s +epsilon+)
+      (vec (repeat (count data) 0))
+      (vec (map #(/ % s) data)))))
 
 (defn clean-data
   [data no-data]
@@ -72,29 +74,30 @@
                                        (make-green n-data green)
                                        (make-blue  n-data blue)])))))
 
-
+(defn data-seq
+  [data]
+  (lazy-seq
+   (if (some (comp not nil?) data)
+     (cons (vec (map first data)) (data-seq (map next data)))
+     nil)))
 
 (defn render-data
-  [file1 file2 file3 pixel-renderer x y]
-  {:pre [(= (:width file1) (:width file2) (:width file3))
-         (= (:height file1) (:height file2) (:height file3))]}
-  (loop [data1 (:data file1)
-         data2 (:data file2)
-         data3 (:data file3)
-         width (:width file1)
-         height (:height file1)
+  [files pixel-renderer x y]
+  (loop [data (data-seq (map :data files))
+         width  (:width (first files))
+         height (:height (first files))
          x 0 y 0]
     (cond
      (and (< y (dec height)) (< x width)
-          (or (nil? data1) (nil? data2) (nil? data3)))
+          (some nil? (first data)))
      (throw (Exception. (format "Out of data: (%d,%d)" x y)))
    
      (= x width)
-     (recur data1 data2 data3 width height 0 (inc y))
+     (recur data width height 0 (inc y))
    
      (< y height)
-     (do (pixel-renderer [(first data1) (first data2) (first data3)] x y)
-         (recur (next data1) (next data2) (next data3) width height (inc x) y)))))
+     (do (pixel-renderer (first data) x y)
+         (recur (rest data) width height (inc x) y)))))
 
 (defn read-data
   [input]
@@ -114,29 +117,26 @@
      :data (read-data input) :color color}))
 
 (defn get-color
-  [accessor data-set-1 data-set-2 data-set-3]
-  (#(vector (accessor %1) (accessor %2) (accessor %3))
-   data-set-1 data-set-2 data-set-3))
+  [accessor data]
+  (vec (map accessor data)))
 
 (defn get-reds
-  [data-set-1 data-set-2 data-set-3]
-  (get-color #(nth (:color %) 0) data-set-1 data-set-2 data-set-3))
+  [data]
+  (get-color #(nth (:color %) 0) data))
 
 (defn get-greens
-  [data-set-1 data-set-2 data-set-3]
-  (get-color #(nth (:color %) 1) data-set-1 data-set-2 data-set-3))
+  [data]
+  (get-color #(nth (:color %) 1) data))
 
 (defn get-blues
-  [data-set-1 data-set-2 data-set-3]
-  (get-color #(nth (:color %) 2) data-set-1 data-set-2 data-set-3))
+  [data]
+  (get-color #(nth (:color %) 2) data))
 
 (defn get-no-data
-  [data-set-1 data-set-2 data-set-3]
-  (if (not (= (:no-data data-set-1)
-              (:no-data data-set-2)
-              (:no-data data-set-3)))
-    (throw (Exception. "Data-files don't all have the same \"no-data\" value.")))
-  (:no-data data-set-1))
+  [data]
+  (if (not= 1 (count (into #{} (map :no-data data))))
+    (throw (Exception. "Data-files don't all have the same \"no-data\" value."))
+    (:no-data (first data))))
 
 (defn render-file
   [input-file red green blue]
@@ -156,23 +156,23 @@
 
 (defn -main
   [params output-file]
-  (let [[file1 file2 file3] (map #(read-data-file (:filename %) (:color %))
+  (let [files (map #(read-data-file (:filename %) (:color %))
                                  (p/get-parameter-files params))]
 
-    (if (not (= (:width file1) (:width file2) (:width file3)))
+    (if (not= 1 (count (into #{} (map :width files))))
       (throw (Exception. "Data-files don't all have the same width.")))
-    (if (not (= (:height file1) (:height file2) (:height file3)))
+    (if (not= 1 (count (into #{} (map :height files))))
       (throw (Exception. "Data-files don't all have the same height.")))
 
     (with-open [output (io/output-stream output-file)]
-        (let [w (:width file1)
-              h (:height file2)
+        (let [w (:width (first files))
+              h (:height (first files))
               img (BufferedImage. w h BufferedImage/TYPE_4BYTE_ABGR)
               pixel-renderer (make-pixel-renderer img
-                                                  (get-reds file1 file2 file3)
-                                                  (get-greens file1 file2 file3)
-                                                  (get-blues file1 file2 file3)
-                                                  (get-no-data file1 file2 file3))]
+                                                  (get-reds files)
+                                                  (get-greens files)
+                                                  (get-blues files)
+                                                  (get-no-data files))]
 
-          (render-data file1 file2 file3 pixel-renderer 0 0)
+          (render-data files pixel-renderer 0 0)
           (ImageIO/write img "PNG" output)))))
