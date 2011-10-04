@@ -61,7 +61,7 @@
 
 (defn clean-data
   [data no-data]
-  (map #(if (= % no-data) 0 %) data))
+  (map #(if (= %1 %2) 0 %1) data no-data))
 
 (defn make-pixel-renderer
   [^BufferedImage raster red green blue no-data]
@@ -134,9 +134,7 @@
 
 (defn get-no-data
   [data]
-  (if (not= 1 (count (into #{} (map :no-data data))))
-    (throw (Exception. "Data-files don't all have the same \"no-data\" value."))
-    (:no-data (first data))))
+  (map :no-data data))
 
 (defn render-file
   [input-file red green blue]
