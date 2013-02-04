@@ -110,8 +110,8 @@
 (defn read-data-file
   [filename color]
   (let [input (io/make-reader filename {:encoding "UTF-8"})
-        ncols (get-ncols (.readLine input))
         nrows (get-nrows (.readLine input))
+        ncols (get-ncols (.readLine input))
         _ (.readLine input)
         _ (.readLine input)
         _ (.readLine input)
@@ -138,22 +138,6 @@
 (defn get-no-data
   [data]
   (map :no-data data))
-
-(defn render-file
-  [input-file red green blue]
-  (let [input (io/make-reader input-file {:encoding "UTF-8"})]
-    (let [ncols (get-ncols (.readLine input))
-          nrows (get-nrows (.readLine input))
-          _ (.readLine input)
-          _ (.readLine input)
-          _ (.readLine input)
-          no-data (get-nodata (.readLine input))
-          img (BufferedImage. ncols nrows BufferedImage/TYPE_4BYTE_ABGR)
-          pixel-renderer (make-pixel-renderer
-                          img (Double. red) (Double. green) (Double. blue) no-data)]
-
-      (render-data (read-data input) ncols nrows pixel-renderer 0 0)
-      img)))
 
 (defn -main
   [params output-file]
