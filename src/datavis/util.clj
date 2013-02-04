@@ -21,4 +21,3 @@
    (if-let [line (.readLine input)]
      (cons line (read-lines input))
      ())))
-

@@ -75,6 +75,9 @@
                                        (make-blue  n-data blue)])))))
 
 (defn data-seq
+  "Takes a sequence of sequences of data and makes a sequence of
+  vectors where the nth vector contains the nth element of each data
+  sequence."
   [data]
   (lazy-seq
    (if (some (comp not nil?) data)
@@ -86,7 +89,7 @@
   (loop [data (data-seq (map :data files))
          width  (:width (first files))
          height (:height (first files))
-         x 0 y 0]
+         x 0, y 0]
     (cond
      (and (< y (dec height)) (< x width)
           (some nil? (first data)))
