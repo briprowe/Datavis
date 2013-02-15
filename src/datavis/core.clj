@@ -139,15 +139,30 @@
   [data]
   (map :no-data data))
 
+(defn usage
+  [spec]
+  (let [usage-message "Usage: datavis <param-filename> <output-filename>\n\n%s"]
+    (case spec
+      :params (format usage-message "No param-filename or output-filename specified.")
+      :output-file (format usage-message "No output-filename specified."))))
+
+(defn error
+  [message]
+  (.println *err* message)
+  (System/exit 1))
+
 (defn -main
-  [params output-file]
-  (let [files (map #(read-data-file (:filename %) (:color %))
+  [& args]
+  (let [[params output-file] args
+        _ (cond (nil? params) (error (usage :params))
+                (nil? output-file) (error (usage :output-file)))
+        files (map #(read-data-file (:filename %) (:color %))
                                  (p/get-parameter-files params))]
 
     (if (not= 1 (count (into #{} (map :width files))))
-      (throw (Exception. "Data-files don't all have the same width.")))
+      (error "Data-files don't all have the same width."))
     (if (not= 1 (count (into #{} (map :height files))))
-      (throw (Exception. "Data-files don't all have the same height.")))
+      (error "Data-files don't all have the same height."))
 
     (with-open [output (io/output-stream output-file)]
         (let [w (:width (first files))
