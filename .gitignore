@@ -4,3 +4,10 @@ pom.xml
 /classes/
 .lein-deps-sum
 /target
+/doc/computation.aux
+/doc/computation.log
+/doc/computation.org
+/doc/computation.out
+/doc/computation.pdf
+/doc/computation.synctex.gz
+/doc/computation.toc
